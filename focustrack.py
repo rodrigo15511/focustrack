@@ -68,6 +68,53 @@ def salvar_dados(dados, arquivo_dados):
     with open(arquivo_dados, "w", encoding="utf-8") as arquivo:
         json.dump(dados, arquivo,  ensure_ascii=False, indent=4)
 
+def ler_inteiro(mensagem, minimo, maximo):
+    for tentativa in range(MAX_TENTATIVAS):
+        restantes = MAX_TENTATIVAS - tentativa - 1
+        try:
+            numero = int(input(mensagem))
+        except ValueError:
+            print(f"Digite um numero inteiro. Restam {restantes} tentativa(s).")
+            continue
+        if minimo <= numero <= maximo:
+            return numero
+        print(f"Valor fora da faixa ({minimo} a {maximo}). Restam {restantes} tentativa(s).")
+    print("Tentativas esgotadas. Operacao cancelada.")
+    return None
+        
+def ler_opcao(mensagem, opcoes):
+    for tentativa in range(MAX_TENTATIVAS):
+        restantes = MAX_TENTATIVAS - tentativa - 1
+        opcao = input(mensagem).upper().strip()
+        if opcao in opcoes:
+            return opcao
+        print(f"Opcao invalida. Opcoes: {', '.join(opcoes)}. Restam {restantes} tentativa(s).")
+    print("Tentativas esgotadas. Operacao cancelada.")
+    return None       
+    
+def ler_data(mensagem):
+    for tentativa in range(MAX_TENTATIVAS):
+        restantes = MAX_TENTATIVAS - tentativa - 1
+        texto = input(mensagem).strip()
+        try:
+            datetime.strptime(texto, FORMATO_DATA)
+        except ValueError:
+            print(f'Data incorreta,use dd/mm/aaaa. Restam {restantes} tentativas')
+            continue
+        return texto
+    print("As tentativas acabaram!")
+    return None
+
+def ler_texto(mensagem):
+    for tentativa in range(MAX_TENTATIVAS):
+        restantes = MAX_TENTATIVAS - tentativa - 1
+        texto = input(mensagem).strip()
+        if texto != "":
+            return texto
+        print(f"O texto nao pode ser vazio. {restantes} restantes")
+    print("As tentativas acabaram")
+    return None    
+
 
     
 
