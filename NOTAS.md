@@ -1,6 +1,6 @@
 # FocusTrack - Notas do projeto
 
-Ultima atualizacao: 19/09/2026
+Ultima atualizacao: 20/09/2026
 
 ## O que e
 
@@ -29,17 +29,19 @@ Mapeamento em relacao ao SoulPass:
 - `listar_catalogo(colecao, chave_id, chave_descricao, titulo)` - listagem generica, retorna `len(colecao)`
 - `carregar_dados(arquivo_dados)` - le o JSON; devolve `[]` se o arquivo nao existe
 - `salvar_dados(dados, arquivo_dados)` - grava a lista no JSON (`ensure_ascii=False`, `indent=4`)
-- **Validacao de entrada com retentativas** (passo 1 do roteiro concluido). As quatro funcoes seguem o mesmo padrao: `for` sobre `MAX_TENTATIVAS`, `restantes`, uma checagem, `return` do valor bom e, ao fim do laco, aviso + `return None`:
+- `OperacaoCancelada(Exception)` - excecao propria (corpo `pass`), definida depois das constantes. Significa "o usuario esgotou as tentativas e a operacao foi cancelada".
+- **Validacao de entrada com retentativas** (passo 1 do roteiro concluido). As quatro funcoes seguem o mesmo padrao: `for` sobre `MAX_TENTATIVAS`, `restantes`, uma checagem, `return` do valor bom e, ao fim do laco (fora do `for`), `raise OperacaoCancelada("Tentativas esgotadas. Operacao cancelada.")`. **Nenhuma devolve mais `None`.**
   - `ler_inteiro(mensagem, minimo, maximo)` - `int()` com `try/except ValueError` + checagem de faixa
   - `ler_opcao(mensagem, opcoes)` - `.strip().upper()` + `in`; mostra as opcoes validas no erro
   - `ler_data(mensagem)` - `datetime.strptime(texto, FORMATO_DATA)` com `try/except ValueError`; devolve o **texto** (JSON nao grava `datetime`)
   - `ler_texto(mensagem)` - recusa texto vazio ou so com espacos
 
-Tudo testado rodando de verdade (entrada valida, invalida, e tentativas esgotadas).
+Tudo testado rodando de verdade (entrada valida, invalida, e tentativas esgotadas levantando `OperacaoCancelada`).
 
 ## Pendencias conhecidas
 
-- `carregar_dados` e `salvar_dados` ainda **sem try/except** (arquivo corrompido, falha de gravacao). Vai junto com o passo 2 (tratamento de excecoes).
+- `carregar_dados` e `salvar_dados` ainda **sem try/except** (arquivo corrompido, falha de gravacao). E a Parte 4 do passo 2 (proximo passo).
+- A frase de `OperacaoCancelada` esta repetida nas quatro funcoes. Da para deixar o texto padrao dentro da propria classe (pede `__init__`, ainda nao visto).
 - `listar_catalogo` ainda nao marca itens inativos (campos diferentes: `ativo` em ALUNOS, `ativa` em DISCIPLINAS).
 - `ler_data` aceita `5/9/2026` (sem zero a esquerda) e devolve do jeito digitado. Para padronizar, guardar o resultado do `strptime` e devolver `.strftime(FORMATO_DATA)`.
 - Mensagens de erro de `ler_data`/`ler_texto` usam `tentativas`/`restantes` em vez de `tentativa(s)` como as outras; padronizar se der vontade.
@@ -47,12 +49,19 @@ Tudo testado rodando de verdade (entrada valida, invalida, e tentativas esgotada
 
 ## Proximo passo
 
-**Passo 2: tratamento de excecoes** (`try/except/else/finally` + excecao customizada `OperacaoCancelada`). Conexao com o que ja existe: hoje as quatro funcoes de leitura devolvem `None` quando as tentativas acabam; o passo 2 troca isso por levantar `OperacaoCancelada`, e quem chama nao precisa checar `None` toda vez.
+**Passo 2, Parte 4: `try/except/else/finally` em `carregar_dados` e `salvar_dados`** (arquivo corrompido: `json.JSONDecodeError`; falha de leitura/gravacao: `OSError`). E onde entram o `else` e o `finally`.
+
+Andamento do passo 2 (tratamento de excecoes):
+
+- ~~Parte 1: criar `OperacaoCancelada`~~ (feito)
+- ~~Parte 2: `raise` no lugar do `return None` em `ler_texto`~~ (feito)
+- ~~Parte 3: mesma troca em `ler_inteiro`, `ler_opcao`, `ler_data`~~ (feito)
+- Parte 4: `try/except/else/finally` na persistencia
 
 Ordem do roteiro do SoulPass:
 
 1. ~~Validacao de entrada com retentativas~~ (feito)
-2. Tratamento de excecoes (try/except/else/finally + excecao customizada tipo `OperacaoCancelada`)
+2. Tratamento de excecoes (try/except/else/finally + excecao customizada `OperacaoCancelada`) - Partes 1 a 3 feitas, falta a Parte 4
 3. Regras de negocio (simulando FK/CHECK)
 4. CRUD completo de `TB_SESSAO_ESTUDO`
 5. Menu principal em loop + submenus
@@ -85,4 +94,11 @@ Cuidado ja no CLI: manter **regras de negocio em funcoes sem `input()`/`print()`
 - O `return None` de "tentativas esgotadas" fica **fora** do `for`, na coluna dele; dentro, cancelaria na primeira falha.
 - `try/except` fica so em volta da linha que pode falhar, e captura o erro especifico (`except ValueError:`), nunca `except:` puro.
 - Nao usar nomes que ja existem no Python (`max`, `id`) para variaveis.
-- Metodo de teste: `printf 'entrada1\nentrada2\n' | python -c "from focustrack import funcao; print(funcao(...))"`.
+- Metodo de teste: `printf 'entrada1\nentrada2\n' | python -c "from focustrack import funcao; print(funcao(...))"` (Git Bash), ou interativo (`python`, depois `from focustrack import ...`).
+- **Excecoes:** `raise` dispara e encerra a funcao na hora; `except X` captura so o tipo `X`. A classe e so uma **etiqueta** (um nome): quem decide quando dispara e o `raise`, e o detalhe vai na mensagem entre parenteses (tem que ser string).
+- **Classe e heranca:** `class A(B):` significa "A e um tipo de B" e A ganha tudo de B. `class OperacaoCancelada(Exception): pass` herda o poder de ser levantada e capturada. "Classe separada" = tipo a parte, nao arquivo a parte.
+- **Quando criar excecao propria:** quando quem chama precisa reagir de forma diferente a essa situacao. Uma por situacao distinta, nao uma por erro pequeno.
+- **Excecao nao passa despercebida como o `None`:** se ninguem captura, o programa cai com traceback claro.
+- O `mensagem` de `ler_*` e a **pergunta** mostrada pelo `input`; a resposta se digita depois que ela aparece.
+- No terminal: `>>>` = dentro do Python (so codigo Python); `$` / `PS C:\>` = shell (comandos). Nao misturar.
+- **O Python nao recarrega modulo ja importado**: apos editar o arquivo, salvar (Ctrl+S) e sair/entrar de novo no `python` para testar a versao nova.

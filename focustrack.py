@@ -30,6 +30,9 @@ MAX_TENTATIVAS = 3
 METODOS_ESTUDOS= ("LEITURA","EXERCICIO","VIDEO_AULA","RESUMO")
 STATUS_SESSAO = ("PENDENTE","CONCLUIDA","REVISAO")
 
+class OperacaoCancelada(Exception):
+    pass
+
 ALUNOS = [
     {"id_aluno": 1, "nome":"Rodrigo", "email":"rodrigo@email.com", "ativo":"S"},
     {"id_aluno": 2, "nome":"Pedro", "email":"pedro@email.com", "ativo":"S"},
@@ -79,8 +82,7 @@ def ler_inteiro(mensagem, minimo, maximo):
         if minimo <= numero <= maximo:
             return numero
         print(f"Valor fora da faixa ({minimo} a {maximo}). Restam {restantes} tentativa(s).")
-    print("Tentativas esgotadas. Operacao cancelada.")
-    return None
+    raise OperacaoCancelada("Tentativas esgotadas. Operacao cancelada.")
         
 def ler_opcao(mensagem, opcoes):
     for tentativa in range(MAX_TENTATIVAS):
@@ -89,8 +91,7 @@ def ler_opcao(mensagem, opcoes):
         if opcao in opcoes:
             return opcao
         print(f"Opcao invalida. Opcoes: {', '.join(opcoes)}. Restam {restantes} tentativa(s).")
-    print("Tentativas esgotadas. Operacao cancelada.")
-    return None       
+    raise OperacaoCancelada("Tentativas esgotadas. Operacao cancelada.")      
     
 def ler_data(mensagem):
     for tentativa in range(MAX_TENTATIVAS):
@@ -102,8 +103,7 @@ def ler_data(mensagem):
             print(f'Data incorreta,use dd/mm/aaaa. Restam {restantes} tentativas')
             continue
         return texto
-    print("As tentativas acabaram!")
-    return None
+    raise OperacaoCancelada("Tentativas esgotadas. Operacao cancelada.")
 
 def ler_texto(mensagem):
     for tentativa in range(MAX_TENTATIVAS):
@@ -112,8 +112,7 @@ def ler_texto(mensagem):
         if texto != "":
             return texto
         print(f"O texto nao pode ser vazio. {restantes} restantes")
-    print("As tentativas acabaram")
-    return None    
+    raise OperacaoCancelada("Tentativas esgotadas. Operacao cancelada.")  
 
 
     
