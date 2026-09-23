@@ -62,14 +62,29 @@ def listar_catalogo(colecao,chave_id,chave_descricao, titulo):
 
 def carregar_dados(arquivo_dados):
     if not os.path.exists(arquivo_dados):
-        return[]
-    with open(arquivo_dados, "r", encoding="utf-8") as arquivo:
-        dados = json.load(arquivo)
-    return dados
+        return []
+    try:
+        with open(arquivo_dados, "r", encoding="utf-8") as arquivo:
+            dados = json.load(arquivo)
+    except json.JSONDecodeError as erro:
+        print(f"O arquivo {arquivo_dados} esta corrompido: {erro}")
+        raise
+    except OSError as erro:
+        print(f"Nao foi possivel ler {arquivo_dados}: {erro}")
+        raise
+    else:
+        return dados
 
 def salvar_dados(dados, arquivo_dados):
-    with open(arquivo_dados, "w", encoding="utf-8") as arquivo:
-        json.dump(dados, arquivo,  ensure_ascii=False, indent=4)
+    try:
+        with open(arquivo_dados, "w", encoding="utf-8") as arquivo:
+            json.dump(dados, arquivo, ensure_ascii=False, indent=4)
+    except OSError as erro:
+        print(f"Nao foi possivel salvar {arquivo_dados}: {erro}")
+        raise
+    else:
+        print("Os dados foram salvos!")
+
 
 def ler_inteiro(mensagem, minimo, maximo):
     for tentativa in range(MAX_TENTATIVAS):

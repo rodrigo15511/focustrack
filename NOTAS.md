@@ -1,6 +1,6 @@
 # FocusTrack - Notas do projeto
 
-Ultima atualizacao: 20/09/2026
+Ultima atualizacao: 22/09/2026
 
 ## O que e
 
@@ -27,8 +27,8 @@ Mapeamento em relacao ao SoulPass:
 - Catalogos `ALUNOS` e `DISCIPLINAS` (4 registros cada, com ativos e inativos)
 - `exibir_cabecalho(titulo)` - cabecalho padronizado, largura 50
 - `listar_catalogo(colecao, chave_id, chave_descricao, titulo)` - listagem generica, retorna `len(colecao)`
-- `carregar_dados(arquivo_dados)` - le o JSON; devolve `[]` se o arquivo nao existe
-- `salvar_dados(dados, arquivo_dados)` - grava a lista no JSON (`ensure_ascii=False`, `indent=4`)
+- `carregar_dados(arquivo_dados)` - le o JSON; devolve `[]` se o arquivo nao existe; `try/except/else` cobrindo `open`+`json.load`: `except json.JSONDecodeError` (arquivo corrompido) e `except OSError` (falha de leitura), cada um avisando com `print` e repetindo o erro (`raise` sozinho); `return dados` no `else`
+- `salvar_dados(dados, arquivo_dados)` - grava a lista no JSON (`ensure_ascii=False`, `indent=4`); mesmo padrao: `try/except OSError/else`, avisa e repete o erro na falha, confirma ("Os dados foram salvos!") no `else`
 - `OperacaoCancelada(Exception)` - excecao propria (corpo `pass`), definida depois das constantes. Significa "o usuario esgotou as tentativas e a operacao foi cancelada".
 - **Validacao de entrada com retentativas** (passo 1 do roteiro concluido). As quatro funcoes seguem o mesmo padrao: `for` sobre `MAX_TENTATIVAS`, `restantes`, uma checagem, `return` do valor bom e, ao fim do laco (fora do `for`), `raise OperacaoCancelada("Tentativas esgotadas. Operacao cancelada.")`. **Nenhuma devolve mais `None`.**
   - `ler_inteiro(mensagem, minimo, maximo)` - `int()` com `try/except ValueError` + checagem de faixa
@@ -36,12 +36,15 @@ Mapeamento em relacao ao SoulPass:
   - `ler_data(mensagem)` - `datetime.strptime(texto, FORMATO_DATA)` com `try/except ValueError`; devolve o **texto** (JSON nao grava `datetime`)
   - `ler_texto(mensagem)` - recusa texto vazio ou so com espacos
 
-Tudo testado rodando de verdade (entrada valida, invalida, e tentativas esgotadas levantando `OperacaoCancelada`).
+Tudo testado rodando de verdade (entrada valida, invalida, tentativas esgotadas levantando `OperacaoCancelada`, arquivo corrompido, pasta inexistente).
+
+**Passo 2 (tratamento de excecoes) concluido**, as quatro partes.
 
 ## Pendencias conhecidas
 
-- `carregar_dados` e `salvar_dados` ainda **sem try/except** (arquivo corrompido, falha de gravacao). E a Parte 4 do passo 2 (proximo passo).
-- A frase de `OperacaoCancelada` esta repetida nas quatro funcoes. Da para deixar o texto padrao dentro da propria classe (pede `__init__`, ainda nao visto).
+- A frase de `OperacaoCancelada` esta repetida nas quatro funcoes de leitura. Da para deixar o texto padrao dentro da propria classe (pede `__init__`, ainda nao visto).
+- `salvar_dados` com `"w"` esvazia o arquivo antes de gravar; se o `json.dump` falhar no meio, o arquivo pode ficar incompleto. Melhoria futura: gravar em arquivo temporario e renomear.
+- `json.dump` pode levantar `TypeError` se algum dado nao for serializavel (ex.: um `datetime` sem converter para texto); nao esta sendo tratado de proposito, deve aparecer como erro de codigo.
 - `listar_catalogo` ainda nao marca itens inativos (campos diferentes: `ativo` em ALUNOS, `ativa` em DISCIPLINAS).
 - `ler_data` aceita `5/9/2026` (sem zero a esquerda) e devolve do jeito digitado. Para padronizar, guardar o resultado do `strptime` e devolver `.strftime(FORMATO_DATA)`.
 - Mensagens de erro de `ler_data`/`ler_texto` usam `tentativas`/`restantes` em vez de `tentativa(s)` como as outras; padronizar se der vontade.
@@ -49,19 +52,19 @@ Tudo testado rodando de verdade (entrada valida, invalida, e tentativas esgotada
 
 ## Proximo passo
 
-**Passo 2, Parte 4: `try/except/else/finally` em `carregar_dados` e `salvar_dados`** (arquivo corrompido: `json.JSONDecodeError`; falha de leitura/gravacao: `OSError`). E onde entram o `else` e o `finally`.
+**Passo 3: regras de negocio (simulando FK/CHECK)** - validar que aluno e disciplina existem e estao ativos, regras de XP por status, etc. Seguindo o combinado la atras: essas regras ficam em funcoes **sem `input()`/`print()`** (recebem valores, devolvem resultado ou levantam excecao), pensando ja na futura API.
 
-Andamento do passo 2 (tratamento de excecoes):
+Passo 2 (tratamento de excecoes) - **concluido**:
 
-- ~~Parte 1: criar `OperacaoCancelada`~~ (feito)
-- ~~Parte 2: `raise` no lugar do `return None` em `ler_texto`~~ (feito)
-- ~~Parte 3: mesma troca em `ler_inteiro`, `ler_opcao`, `ler_data`~~ (feito)
-- Parte 4: `try/except/else/finally` na persistencia
+- ~~Parte 1: criar `OperacaoCancelada`~~
+- ~~Parte 2: `raise` no lugar do `return None` em `ler_texto`~~
+- ~~Parte 3: mesma troca em `ler_inteiro`, `ler_opcao`, `ler_data`~~
+- ~~Parte 4: `try/except/else` em `carregar_dados` e `salvar_dados` (`json.JSONDecodeError` e `OSError`, aviso + `raise` sozinho, `else` para o caminho de sucesso)~~
 
 Ordem do roteiro do SoulPass:
 
 1. ~~Validacao de entrada com retentativas~~ (feito)
-2. Tratamento de excecoes (try/except/else/finally + excecao customizada `OperacaoCancelada`) - Partes 1 a 3 feitas, falta a Parte 4
+2. ~~Tratamento de excecoes (try/except/else + excecao customizada `OperacaoCancelada`)~~ (feito)
 3. Regras de negocio (simulando FK/CHECK)
 4. CRUD completo de `TB_SESSAO_ESTUDO`
 5. Menu principal em loop + submenus
@@ -102,3 +105,7 @@ Cuidado ja no CLI: manter **regras de negocio em funcoes sem `input()`/`print()`
 - O `mensagem` de `ler_*` e a **pergunta** mostrada pelo `input`; a resposta se digita depois que ela aparece.
 - No terminal: `>>>` = dentro do Python (so codigo Python); `$` / `PS C:\>` = shell (comandos). Nao misturar.
 - **O Python nao recarrega modulo ja importado**: apos editar o arquivo, salvar (Ctrl+S) e sair/entrar de novo no `python` para testar a versao nova.
+- **`with` dentro de `try` (nao o contrario):** `try` fica por fora, `with open(...)` fica dentro dele, recuado; assim o `try` cobre tambem o `open` (falha ao abrir), e nao so o que vem depois. Erro comum: `with ...:` seguido de `try:` na mesma coluna -> `IndentationError: expected an indented block after 'with' statement`.
+- **`OSError`** cobre os erros de arquivo (`FileNotFoundError`, `PermissionError`, `IsADirectoryError` sao subclasses dele); um `except OSError` pega todos de uma vez.
+- **`raise` sozinho** (sem nada depois), dentro de um `except`, repete o mesmo erro que acabou de ser capturado, sem adicionar uma linha nova ao traceback. Padrao usado: avisar com `print` (dizendo qual arquivo) e depois `raise`, para nao seguir em frente com dado incompleto/corrompido.
+- **`else` do `try`** roda so quando nao houve erro; e o lugar certo do `return`/confirmacao de sucesso, separado do tratamento de erro.
