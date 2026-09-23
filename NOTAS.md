@@ -1,6 +1,6 @@
 # FocusTrack - Notas do projeto
 
-Ultima atualizacao: 22/09/2026
+Ultima atualizacao: 22/09/2026 (passo 3 em andamento)
 
 ## O que e
 
@@ -30,6 +30,10 @@ Mapeamento em relacao ao SoulPass:
 - `carregar_dados(arquivo_dados)` - le o JSON; devolve `[]` se o arquivo nao existe; `try/except/else` cobrindo `open`+`json.load`: `except json.JSONDecodeError` (arquivo corrompido) e `except OSError` (falha de leitura), cada um avisando com `print` e repetindo o erro (`raise` sozinho); `return dados` no `else`
 - `salvar_dados(dados, arquivo_dados)` - grava a lista no JSON (`ensure_ascii=False`, `indent=4`); mesmo padrao: `try/except OSError/else`, avisa e repete o erro na falha, confirma ("Os dados foram salvos!") no `else`
 - `OperacaoCancelada(Exception)` - excecao propria (corpo `pass`), definida depois das constantes. Significa "o usuario esgotou as tentativas e a operacao foi cancelada".
+- `RegraNegocioVioloda(Exception)` - excecao propria (corpo `pass`) para regra de negocio violada (nome de classe com erro de digitacao - "Violoda" em vez de "Violada" -, mantido de proposito por enquanto, raise/except usam o mesmo nome em todo o arquivo).
+- **Regras de negocio simulando FK/CHECK** (passo 3, inicio). Funcoes **sem `input()`/`print()`**: recebem valor, devolvem o registro ou levantam `RegraNegocioVioloda`.
+  - `buscar_aluno(id_aluno)` / `buscar_disciplina(id_disciplina)` - procuram na lista (`for` + `if item["chave"] == valor: return item`), devolvem o dicionario ou `None` (FK: existe?)
+  - `validar_aluno(id_aluno)` / `validar_disciplinas(id_disciplina)` - chamam o `buscar_*`; se `None`, `raise` (nao existe); se `aluno["ativo"] != "S"` / `disciplina["ativa"] != "S"`, `raise` (CHECK: inativo); senao devolvem o registro
 - **Validacao de entrada com retentativas** (passo 1 do roteiro concluido). As quatro funcoes seguem o mesmo padrao: `for` sobre `MAX_TENTATIVAS`, `restantes`, uma checagem, `return` do valor bom e, ao fim do laco (fora do `for`), `raise OperacaoCancelada("Tentativas esgotadas. Operacao cancelada.")`. **Nenhuma devolve mais `None`.**
   - `ler_inteiro(mensagem, minimo, maximo)` - `int()` com `try/except ValueError` + checagem de faixa
   - `ler_opcao(mensagem, opcoes)` - `.strip().upper()` + `in`; mostra as opcoes validas no erro
@@ -52,7 +56,7 @@ Tudo testado rodando de verdade (entrada valida, invalida, tentativas esgotadas 
 
 ## Proximo passo
 
-**Passo 3: regras de negocio (simulando FK/CHECK)** - validar que aluno e disciplina existem e estao ativos, regras de XP por status, etc. Seguindo o combinado la atras: essas regras ficam em funcoes **sem `input()`/`print()`** (recebem valores, devolvem resultado ou levantam excecao), pensando ja na futura API.
+**Passo 3, continuacao:** `buscar_aluno`/`buscar_disciplina` e `validar_aluno`/`validar_disciplinas` prontas e testadas (aluno/disciplina existente ativo, existente inativo, inexistente). Falta decidir se entram mais regras aqui (ex.: XP so conta se status `CONCLUIDA`, minutos estudados deve ser positivo) antes de seguir pro passo 4 (CRUD) - em aberto.
 
 Passo 2 (tratamento de excecoes) - **concluido**:
 
@@ -65,7 +69,7 @@ Ordem do roteiro do SoulPass:
 
 1. ~~Validacao de entrada com retentativas~~ (feito)
 2. ~~Tratamento de excecoes (try/except/else + excecao customizada `OperacaoCancelada`)~~ (feito)
-3. Regras de negocio (simulando FK/CHECK)
+3. Regras de negocio (simulando FK/CHECK) - FK+CHECK de aluno/disciplina feitos, escopo aberto pra mais regras
 4. CRUD completo de `TB_SESSAO_ESTUDO`
 5. Menu principal em loop + submenus
 
@@ -109,3 +113,7 @@ Cuidado ja no CLI: manter **regras de negocio em funcoes sem `input()`/`print()`
 - **`OSError`** cobre os erros de arquivo (`FileNotFoundError`, `PermissionError`, `IsADirectoryError` sao subclasses dele); um `except OSError` pega todos de uma vez.
 - **`raise` sozinho** (sem nada depois), dentro de um `except`, repete o mesmo erro que acabou de ser capturado, sem adicionar uma linha nova ao traceback. Padrao usado: avisar com `print` (dizendo qual arquivo) e depois `raise`, para nao seguir em frente com dado incompleto/corrompido.
 - **`else` do `try`** roda so quando nao houve erro; e o lugar certo do `return`/confirmacao de sucesso, separado do tratamento de erro.
+- **FK/CHECK (conceito de banco) simulados a mao:** FK = a referencia (id) precisa existir na outra tabela/lista; CHECK = regra sobre o valor de um campo (ex.: status ativo). `buscar_*` resolve a FK (existe?); `validar_*` acrescenta o CHECK (existe E esta ativo?).
+- **`is` vs `==`:** `is` pergunta "e o mesmo objeto na memoria?"; `==` pergunta "tem o mesmo valor?". Use `is None` (None e sempre o unico objeto do seu tipo). Para texto/numero, use `==`/`!=` - `is "N"` da SyntaxWarning do proprio Python ("Did you mean =="?) e pode falhar quando o valor vem de fora (JSON, banco), mesmo que hoje pareca funcionar por otimizacao interna do Python (strings curtas/literais).
+- **Ordem importa em validacoes encadeadas:** so da pra checar `dado["campo"]` depois de confirmar que `dado` nao e `None`; senao quebra tentando indexar `None`.
+- Preferir `!= "S"` a `== "N"` nessas checagens: se aparecer um valor inesperado (vazio, espaco, erro de digitacao), `!= "S"` ainda bloqueia (seguro); `== "N"` deixaria passar por engano.

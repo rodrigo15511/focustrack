@@ -33,6 +33,9 @@ STATUS_SESSAO = ("PENDENTE","CONCLUIDA","REVISAO")
 class OperacaoCancelada(Exception):
     pass
 
+class RegraNegocioVioloda(Exception):
+    pass
+
 ALUNOS = [
     {"id_aluno": 1, "nome":"Rodrigo", "email":"rodrigo@email.com", "ativo":"S"},
     {"id_aluno": 2, "nome":"Pedro", "email":"pedro@email.com", "ativo":"S"},
@@ -46,6 +49,37 @@ DISCIPLINAS = [
     {"id_disciplina": 3, "nome_disciplina": "IA", "carga_horaria_meta": 100, "ativa": "S"},
     {"id_disciplina": 4, "nome_disciplina": "Front", "carga_horaria_meta": 60, "ativa": "N"}
 ]
+
+def buscar_aluno(id_aluno):
+    for item in ALUNOS:
+        if item["id_aluno"] == id_aluno:
+            return item
+    return None
+
+def buscar_disciplina(id_disciplina):
+    for item in DISCIPLINAS:
+        if item["id_disciplina"] == id_disciplina:
+            return item
+    return None
+
+def validar_aluno(id_aluno):
+    aluno = buscar_aluno(id_aluno)
+    if aluno is None:
+       raise RegraNegocioVioloda("O aluno nao existe")
+    if aluno["ativo"] != "S":
+        raise RegraNegocioVioloda("Aluno inativo")
+    return aluno
+
+def validar_disciplinas(id_disciplina):
+    disciplina = buscar_disciplina(id_disciplina)
+    if disciplina is None:
+        raise RegraNegocioVioloda("A disciplina nao existe")
+    if disciplina["ativa"] != "S":
+        raise RegraNegocioVioloda("Disciplina inativa")
+    return disciplina
+    
+    
+
 
 def exibir_cabecalho(titulo):
     print("=" * 50)
